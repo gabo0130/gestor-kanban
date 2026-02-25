@@ -2,10 +2,32 @@
 
 import { ProtectedRoute } from "@/components/organisms";
 import { Button } from "@/components/atoms";
+import { KanbanBoard } from "@/components/organisms";
 import { useAuth } from "@/contexts/auth-context";
+import { useKanban } from "@/modules/tasks/hooks/useKanban/useKanban";
+
+const DEFAULT_BOARD_ID = "default";
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
+  const { statuses, tasks, loading, error, refresh, persistTaskStatus } =
+    useKanban(DEFAULT_BOARD_ID);
+
+  const handleTaskMove = async (params: {
+    taskId: string;
+    toStatus: string;
+    destinationIndex: number;
+  }) => {
+    const result = await persistTaskStatus(
+      params.taskId,
+      params.toStatus,
+      params.destinationIndex
+    );
+
+    if (result.error) {
+      await refresh();
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -23,20 +45,41 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl p-6">
-          <div className="rounded-lg border border-foreground/10 bg-background p-8 text-center">
-            <h2 className="mb-2 text-2xl font-semibold">Dashboard</h2>
-            <p className="opacity-80">
-              Entraste al tablero.
+        <main className="mx-auto max-w-7xl space-y-4 p-6">
+          <section className="rounded-lg border border-foreground/10 bg-background p-4">
+            <h2 className="text-lg font-semibold">Tablero de tareas</h2>
+            <p className="mt-1 text-sm opacity-75">
+              Arrastra y suelta tareas entre estados.
             </p>
+          </section>
 
-            <div className="mt-6 text-left">
-              <h3 className="mb-2 font-medium">Información de sesión:</h3>
-              <ul className="space-y-1 text-sm opacity-80">
-                <li>Email: {user?.email}</li>
-                <li>ID: {user?.id}</li>
-              </ul>
-            </div>
+          <section className="rounded-lg border border-foreground/10 bg-background p-4">
+            {loading ? <p className="text-sm opacity-70">Cargando tablero...</p> : null}
+
+            {!loading && error ? (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-foreground/20 p-3">
+                <p className="text-sm">{error}</p>
+                <Button variant="secondary" onClick={() => void refresh()}>
+                  Reintentar
+                </Button>
+              </div>
+            ) : null}
+
+            {!loading && !error ? (
+              <KanbanBoard
+                statuses={statuses}
+                tasks={tasks}
+                onTaskMove={handleTaskMove}
+              />
+            ) : null}
+          </section>
+
+          <div className="rounded-lg border border-foreground/10 bg-background p-4">
+            <h3 className="mb-2 text-sm font-medium">Información de sesión:</h3>
+            <ul className="space-y-1 text-sm opacity-80">
+              <li>Email: {user?.email}</li>
+              <li>ID: {user?.id}</li>
+            </ul>
           </div>
         </main>
       </div>
