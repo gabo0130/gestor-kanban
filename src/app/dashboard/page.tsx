@@ -1,10 +1,10 @@
 "use client";
 
-import { ProtectedRoute } from "@/components/organisms";
-import { Button } from "@/components/atoms";
-import { KanbanBoard } from "@/components/organisms";
+import Link from "next/link";
+import { Button, KanbanBoard } from "@/components/atoms";
+import { ProtectedRoute, RoleGuard } from "@/components/organisms";
 import { useAuth } from "@/contexts/auth-context";
-import { useKanban } from "@/modules/tasks/hooks/useKanban/useKanban";
+import { useKanban } from "@/modules/kanban/hooks/useKanban";
 
 const DEFAULT_BOARD_ID = "default";
 
@@ -39,9 +39,17 @@ export default function DashboardPage() {
               <p className="text-sm opacity-70">Bienvenido, {user?.name}</p>
             </div>
 
-            <Button variant="secondary" onClick={logout}>
-              Cerrar sesión
-            </Button>
+            <div className="flex items-center gap-2">
+              <RoleGuard allowed={["Admin"]}>
+                <Link href="/dashboard/users">
+                  <Button variant="secondary">👥 Gestionar usuarios</Button>
+                </Link>
+              </RoleGuard>
+
+              <Button variant="secondary" onClick={logout}>
+                Cerrar sesión
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -59,7 +67,7 @@ export default function DashboardPage() {
             {!loading && error ? (
               <div className="flex items-center justify-between gap-3 rounded-md border border-foreground/20 p-3">
                 <p className="text-sm">{error}</p>
-                <Button variant="secondary" onClick={() => void refresh()}>
+                <Button variant="secondary" onClick={refresh}>
                   Reintentar
                 </Button>
               </div>
@@ -74,13 +82,14 @@ export default function DashboardPage() {
             ) : null}
           </section>
 
-          <div className="rounded-lg border border-foreground/10 bg-background p-4">
+          <section className="rounded-lg border border-foreground/10 bg-background p-4">
             <h3 className="mb-2 text-sm font-medium">Información de sesión:</h3>
             <ul className="space-y-1 text-sm opacity-80">
-              <li>Email: {user?.email}</li>
-              <li>ID: {user?.id}</li>
+              <li>Email: {user?.email ?? "-"}</li>
+              <li>ID: {user?.id ?? "-"}</li>
+              <li>Rol: {user?.role ?? "-"}</li>
             </ul>
-          </div>
+          </section>
         </main>
       </div>
     </ProtectedRoute>
