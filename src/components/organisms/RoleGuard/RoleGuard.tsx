@@ -12,7 +12,6 @@ type RoleGuardProps = {
 
 export const RoleGuard = ({ allowed, children, fallback = null }: RoleGuardProps) => {
   const { user } = useAuth();
-  console.log("RoleGuard - user role:", user?.role);
   const role = user?.role;
 
   if (!role || !allowed.includes(role)) {

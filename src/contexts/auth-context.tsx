@@ -39,7 +39,6 @@ const restoreSession = () => {
 
   if (storedToken && storedUser) {
     try {
-      console.log("Restoring auth session from localStorage",storedUser);
       const parsedUser = JSON.parse(storedUser) as AuthUser;
       const normalizedUser = normalizeUser(parsedUser);
       // Sincronizar cookie y header
