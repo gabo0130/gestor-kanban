@@ -10,12 +10,7 @@ import {
 } from "react";
 import { LoginResponse } from "@/apis/interfaces/login.interface";
 import { apiClient } from "@/apis/client";
-
-type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-};
+import { AuthUser } from "@/modules/auth/types/auth.types";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -31,6 +26,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
 
+const normalizeUser = (user: AuthUser): AuthUser => user;
+
 // Función helper para restaurar sesión desde localStorage
 const restoreSession = () => {
   if (typeof window === "undefined") {
@@ -42,11 +39,13 @@ const restoreSession = () => {
 
   if (storedToken && storedUser) {
     try {
+      console.log("Restoring auth session from localStorage",storedUser);
       const parsedUser = JSON.parse(storedUser) as AuthUser;
+      const normalizedUser = normalizeUser(parsedUser);
       // Sincronizar cookie y header
       document.cookie = `auth_token=${storedToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
       apiClient.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
-      return { token: storedToken, user: parsedUser };
+      return { token: storedToken, user: normalizedUser };
     } catch (error) {
       console.error("Failed to restore auth session:", error);
       localStorage.removeItem(TOKEN_KEY);
@@ -67,12 +66,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback((response: LoginResponse) => {
     const { token: newToken, user: newUser } = response;
+    const normalizedUser = normalizeUser(newUser);
 
     setToken(newToken);
-    setUser(newUser);
+    setUser(normalizedUser);
 
     localStorage.setItem(TOKEN_KEY, newToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
 
     // Configurar cookie para middleware (expira en 7 días)
     document.cookie = `auth_token=${newToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
