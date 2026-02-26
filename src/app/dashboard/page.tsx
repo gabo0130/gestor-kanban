@@ -34,7 +34,7 @@ export default function DashboardPage() {
               <h3 className="mb-2 font-medium">Información de sesión:</h3>
               <ul className="space-y-1 text-sm opacity-80">
                 <li>Email: {user?.email}</li>
-                <li>ID: {user?.id}</li>
+                <li>Role: {user?.role}</li>
               </ul>
             </div>
           </div>
