@@ -1,4 +1,5 @@
 import { KanbanTask } from "@/modules/tasks/types/kanban.types";
+import { TaskInfo } from "@/components/molecules";
 
 type TaskCardProps = {
   task: KanbanTask;
@@ -6,17 +7,25 @@ type TaskCardProps = {
 };
 
 export const TaskCard = ({ task, dragging = false }: TaskCardProps) => {
-  console.log(task);
+  const assigneeText = task.assigneeName
+    ? task.assigneeName
+    : task.assigneeId
+      ? `Usuario ${task.assigneeId}`
+      : "Sin asignar";
+
   return (
     <article
       className={`rounded-md border border-foreground/15 bg-background p-3 shadow-sm transition-colors ${
         dragging ? "border-foreground/40" : ""
       }`}
     >
-      <h4 className="text-sm font-medium">{task.title}</h4>
-      {task.description ? (
-        <p className="mt-1 text-xs opacity-75">{task.description}</p>
-      ) : null}
+      <TaskInfo
+        title={task.title}
+        description={task.description}
+        status={task.status}
+        assignee={assigneeText}
+        labels={task.labels}
+      />
     </article>
   );
 };
