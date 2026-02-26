@@ -5,6 +5,9 @@ export type KanbanTask = {
   title: string;
   description?: string;
   status: TaskStatus;
+  assigneeId?: string;
+  assigneeName?: string;
+  labels?: string[];
 };
 
 export type KanbanColumn = {

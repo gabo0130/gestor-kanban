@@ -27,7 +27,8 @@ export interface BoardTaskDTO {
   title: string;
   description?: string;
   status: string;
-  assigneeId?: string;
+  assigneeId?: string | number;
+  assigneeName?: string;
   labels?: string[];
 }
 
