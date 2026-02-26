@@ -6,6 +6,7 @@ type TaskCardProps = {
 };
 
 export const TaskCard = ({ task, dragging = false }: TaskCardProps) => {
+  console.log(task);
   return (
     <article
       className={`rounded-md border border-foreground/15 bg-background p-3 shadow-sm transition-colors ${

@@ -1,13 +1,17 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Spinner } from "@/components/atoms";
 import { InformativeModal } from "@/components/molecules";
-import { UIStateProvider, useUIState } from "@/hooks/ui-state";
+import { UIStateProvider, setUIBridge, useUIState } from "@/hooks/ui-state";
 import { AuthProvider } from "@/contexts/auth-context";
 
 const GlobalUI = () => {
-  const { loading, modal, closeModal } = useUIState();
+  const { loading, modal, closeModal, startLoading, stopLoading, showModal } = useUIState();
+
+  useEffect(() => {
+    setUIBridge({ startLoading, stopLoading, showModal });
+  }, [startLoading, stopLoading, showModal]);
 
   return (
     <>
@@ -21,6 +25,7 @@ const GlobalUI = () => {
         open={modal.open}
         title={modal.title}
         message={modal.message}
+        variant={modal.variant}
         onClose={closeModal}
       />
     </>

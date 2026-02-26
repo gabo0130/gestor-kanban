@@ -22,6 +22,7 @@ describe("useUIState", () => {
       open: true,
       title: "Error",
       message: "Algo salió mal",
+      variant: "error",
     });
 
     act(() => {

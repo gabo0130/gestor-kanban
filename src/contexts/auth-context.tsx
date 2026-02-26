@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useEffect,
   ReactNode,
   useCallback,
   useContext,
@@ -57,11 +58,16 @@ const restoreSession = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const restored = restoreSession();
-  const [user, setUser] = useState<AuthUser | null>(restored.user);
-  const [token, setToken] = useState<string | null>(restored.token);
-  // isLoading podría usarse para validación inicial async en el futuro
-  const isLoading = false;
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const restored = restoreSession();
+    setToken(restored.token);
+    setUser(restored.user);
+    setIsLoading(false);
+  }, []);
 
   const login = useCallback((response: LoginResponse) => {
     const { token: newToken, user: newUser } = response;

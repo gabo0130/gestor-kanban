@@ -1,6 +1,7 @@
 import { AxiosError } from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getBoard, updateTaskStatus } from "@/apis/tasks.api";
+import { getBoard } from "@/apis/boards.api";
+import { updateTaskStatus } from "@/apis/tasks.api";
 import {
   BoardStatusDefinition,
   KanbanTask,
@@ -27,23 +28,31 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-export const useKanban = (boardId: string): UseKanbanResult => {
+export const useKanban = (boardId: string, enabled = true): UseKanbanResult => {
   const [statuses, setStatuses] = useState<BoardStatusDefinition[]>([]);
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBoard = useCallback(async () => {
+    if (!enabled || !boardId) {
+      setStatuses([]);
+      setTasks([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       const data = await getBoard(boardId);
 
-      setStatuses(data.statuses.map((status) => ({ id: status.id, label: status.label })));
+      setStatuses(data.statuses.map((status) => ({ id: status.label, label: status.label })));
       setTasks(
         data.tasks.map((task) => ({
-          id: task.id,
+          id: String(task.id),
           title: task.title,
           description: task.description,
           status: task.status,
@@ -54,7 +63,7 @@ export const useKanban = (boardId: string): UseKanbanResult => {
     } finally {
       setLoading(false);
     }
-  }, [boardId]);
+  }, [boardId, enabled]);
 
   useEffect(() => {
     fetchBoard();
@@ -62,6 +71,10 @@ export const useKanban = (boardId: string): UseKanbanResult => {
 
   const persistTaskStatus = useCallback(
     async (taskId: string, status: string, position?: number) => {
+      if (!enabled) {
+        return { error: "Sesión no disponible." };
+      }
+
       try {
         await updateTaskStatus(taskId, { status, position });
         return { error: null };
@@ -71,7 +84,7 @@ export const useKanban = (boardId: string): UseKanbanResult => {
         return { error: message };
       }
     },
-    []
+    [enabled]
   );
 
   return useMemo(

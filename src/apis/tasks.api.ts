@@ -1,19 +1,28 @@
 
 import { apiClient } from "./client";
 import {
-  GetBoardResponse,
+  BoardTaskDTO,
+  CreateTaskDTO,
+  UpdateTaskDTO,
   UpdateTaskStatusDTO,
   UpdateTaskStatusResponse,
 } from "./interfaces/kanban.interface";
 
-export const getBoard = async (boardId: string): Promise<GetBoardResponse> => {
-  try {
-    const response = await apiClient.get<GetBoardResponse>(`/boards/${boardId}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching board:", error);
-    throw error;
-  }
+export const createTask = async (data: CreateTaskDTO): Promise<BoardTaskDTO> => {
+  const response = await apiClient.post<BoardTaskDTO>("/tasks", data);
+  return response.data;
+};
+
+export const updateTask = async (
+  taskId: string,
+  data: UpdateTaskDTO
+): Promise<BoardTaskDTO> => {
+  const response = await apiClient.patch<BoardTaskDTO>(`/tasks/${taskId}`, data);
+  return response.data;
+};
+
+export const deleteTask = async (taskId: string): Promise<void> => {
+  await apiClient.delete(`/tasks/${taskId}`);
 };
 
 export const updateTaskStatus = async (

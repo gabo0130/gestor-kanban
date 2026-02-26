@@ -2,7 +2,7 @@
 
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useMemo, useState } from "react";
-import { KanbanColumn } from "@/components/molecules";
+import { KanbanColumn } from "@/components/molecules/KanbanColumn/KanbanColumn";
 import {
   BoardStatusDefinition,
   KanbanTask,
