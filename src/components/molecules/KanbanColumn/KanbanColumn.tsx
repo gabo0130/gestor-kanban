@@ -10,7 +10,6 @@ type KanbanColumnProps = {
 };
 
 export const KanbanColumn = ({ column, tasks }: KanbanColumnProps) => {
-  console.log("taskss", tasks);
   return (
     <section className="flex min-h-105 min-w-70 flex-col rounded-lg border border-foreground/10 bg-foreground/5 p-3 sm:min-w-80">
       <header className="mb-3 flex items-center justify-between">
