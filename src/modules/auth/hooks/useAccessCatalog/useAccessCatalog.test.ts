@@ -60,4 +60,40 @@ describe("useAccessCatalog", () => {
     expect(result.current.roles).toEqual([]);
     expect(result.current.error).toBe("No se pudo cargar el catálogo de roles");
   });
+
+  it("does not update state after unmount on successful request", async () => {
+    let resolveRequest: ((value: unknown) => void) | undefined;
+    (getRolesCatalog as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve;
+      })
+    );
+
+    const { result, unmount } = renderHook(() => useAccessCatalog());
+    unmount();
+
+    resolveRequest?.({ roles: [{ id: "1", key: "admin", name: "Admin" }] });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(true);
+    });
+  });
+
+  it("does not update error after unmount on failed request", async () => {
+    let rejectRequest: ((reason?: unknown) => void) | undefined;
+    (getRolesCatalog as jest.Mock).mockReturnValue(
+      new Promise((_, reject) => {
+        rejectRequest = reject;
+      })
+    );
+
+    const { result, unmount } = renderHook(() => useAccessCatalog());
+    unmount();
+
+    rejectRequest?.(new Error("boom"));
+
+    await waitFor(() => {
+      expect(result.current.error).toBeNull();
+    });
+  });
 });

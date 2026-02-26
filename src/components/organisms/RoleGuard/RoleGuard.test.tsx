@@ -31,4 +31,16 @@ describe("RoleGuard", () => {
 
     expect(screen.getByText("Sin acceso")).toBeInTheDocument();
   });
+
+  it("renders nothing when user has no role and fallback is not provided", () => {
+    mockUseAuth.mockReturnValue({ user: null });
+
+    const { container } = render(
+      <RoleGuard allowed={["admin"]}>
+        <div>Contenido privado</div>
+      </RoleGuard>
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });
