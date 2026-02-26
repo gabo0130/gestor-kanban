@@ -1,20 +1,24 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getBoards } from "@/apis/boards.api";
 import { BoardDTO } from "@/apis/interfaces/kanban.interface";
-import { Button } from "@/components/atoms";
+import { Button, NavButtonLink } from "@/components/atoms";
 import { ProtectedRoute, RoleGuard } from "@/components/organisms";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading, isAuthenticated } = useAuth();
   const [boards, setBoards] = useState<BoardDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadBoards = async () => {
+  const loadBoards = useCallback(async () => {
+    if (authLoading || !isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -26,11 +30,11 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [authLoading, isAuthenticated]);
 
   useEffect(() => {
     void loadBoards();
-  }, []);
+  }, [loadBoards]);
 
   return (
     <ProtectedRoute>
@@ -39,20 +43,24 @@ export default function DashboardPage() {
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div>
               <h1 className="text-xl font-semibold">Gestor Kanban</h1>
-              <p className="text-sm opacity-70">Tableros asignados a {user?.name}</p>
+              <p className="text-sm opacity-70">
+                {user?.role === "Member"
+                  ? `Tableros con tareas asignadas a ${user?.name}`
+                  : `Tableros disponibles para ${user?.name}`}
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
               <RoleGuard allowed={["Admin"]}>
-                <Link href="/dashboard/users">
-                  <Button variant="secondary">👥 Gestionar usuarios</Button>
-                </Link>
+                <NavButtonLink href="/dashboard/users">
+                  👥 Gestionar usuarios
+                </NavButtonLink>
               </RoleGuard>
 
               <RoleGuard allowed={["Admin"]}>
-                <Link href="/dashboard/boards/new">
-                  <Button variant="secondary">➕ Crear tablero</Button>
-                </Link>
+                <NavButtonLink href="/dashboard/boards/new">
+                  ➕ Crear tablero
+                </NavButtonLink>
               </RoleGuard>
 
               <Button variant="secondary" onClick={logout}>
@@ -76,7 +84,7 @@ export default function DashboardPage() {
             {!loading && error ? (
               <div className="flex items-center justify-between gap-3 rounded-md border border-foreground/20 p-3">
                 <p className="text-sm">{error}</p>
-                <Button variant="secondary" onClick={loadBoards}>
+                <Button variant="secondary" onClick={loadBoards} disabled={authLoading}>
                   Reintentar
                 </Button>
               </div>
@@ -98,20 +106,20 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        <Link href={`/dashboard/boards/${board.id}`}>
-                          <Button variant="secondary">Abrir tablero</Button>
-                        </Link>
+                        <NavButtonLink href={`/dashboard/boards/${board.id}`}>
+                          Abrir tablero
+                        </NavButtonLink>
 
                         <RoleGuard allowed={["Admin", "Manager"]}>
-                          <Link href={`/dashboard/boards/${board.id}/tasks`}>
-                            <Button variant="secondary">Gestionar tareas</Button>
-                          </Link>
+                          <NavButtonLink href={`/dashboard/boards/${board.id}/tasks`}>
+                            Gestionar tareas
+                          </NavButtonLink>
                         </RoleGuard>
 
                         <RoleGuard allowed={["Admin"]}>
-                          <Link href={`/dashboard/boards/${board.id}/settings`}>
-                            <Button variant="secondary">Configurar tablero</Button>
-                          </Link>
+                          <NavButtonLink href={`/dashboard/boards/${board.id}/settings`}>
+                            Configurar tablero
+                          </NavButtonLink>
                         </RoleGuard>
                       </div>
                     </article>

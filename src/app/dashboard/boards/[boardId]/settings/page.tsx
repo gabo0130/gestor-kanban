@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -12,8 +11,10 @@ import {
   updateBoardLabel,
 } from "@/apis/boards.api";
 import { BoardLabelDTO } from "@/apis/interfaces/kanban.interface";
-import { Button, Input, Spinner } from "@/components/atoms";
+import { Button, Input, NavButtonLink, Spinner } from "@/components/atoms";
+import { AccessGuardFallback } from "@/components/molecules";
 import { ProtectedRoute, RoleGuard } from "@/components/organisms";
+import { useAuth } from "@/contexts/auth-context";
 
 type BoardValues = {
   name: string;
@@ -40,6 +41,8 @@ export default function BoardSettingsPage() {
   const router = useRouter();
   const { boardId: rawBoardId } = useParams();
   const boardId = getBoardId(rawBoardId);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const isAdmin = user?.role === "Admin";
 
   const [values, setValues] = useState<BoardValues>({
     name: "",
@@ -55,7 +58,7 @@ export default function BoardSettingsPage() {
   const [loading, setLoading] = useState(true);
 
   const loadBoardDetails = useCallback(async () => {
-    if (!boardId) {
+    if (!boardId || authLoading || !isAuthenticated || !isAdmin) {
       setLoading(false);
       return;
     }
@@ -89,13 +92,17 @@ export default function BoardSettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [boardId]);
+  }, [authLoading, boardId, isAdmin, isAuthenticated]);
 
   useEffect(() => {
     void loadBoardDetails();
   }, [loadBoardDetails]);
 
   const handleUpdateBoard = async () => {
+    if (!isAdmin) {
+      return;
+    }
+
     try {
       await updateBoard(boardId, {
         name: values.name,
@@ -107,6 +114,10 @@ export default function BoardSettingsPage() {
   };
 
   const handleDeleteBoard = async () => {
+    if (!isAdmin) {
+      return;
+    }
+
     try {
       await deleteBoard(boardId);
       router.push("/dashboard");
@@ -114,6 +125,10 @@ export default function BoardSettingsPage() {
   };
 
   const handleCreateLabel = async () => {
+    if (!isAdmin) {
+      return;
+    }
+
     if (!newLabelName.trim()) {
       return;
     }
@@ -126,6 +141,10 @@ export default function BoardSettingsPage() {
   };
 
   const handleSaveLabel = async (labelId: string) => {
+    if (!isAdmin) {
+      return;
+    }
+
     try {
       await updateBoardLabel(boardId, labelId, { name: editingLabelName });
       setEditingLabelId(null);
@@ -135,6 +154,10 @@ export default function BoardSettingsPage() {
   };
 
   const handleDeleteLabel = async (labelId: string) => {
+    if (!isAdmin) {
+      return;
+    }
+
     try {
       await deleteBoardLabel(boardId, labelId);
       await loadBoardDetails();
@@ -146,15 +169,7 @@ export default function BoardSettingsPage() {
       <RoleGuard
         allowed={["Admin"]}
         fallback={
-          <div className="flex min-h-screen items-center justify-center p-6">
-            <main className="w-full max-w-lg rounded-xl border border-foreground/15 p-6 text-center">
-              <h1 className="mb-2 text-xl font-semibold">Permisos limitados</h1>
-              <p className="text-sm opacity-80">Solo Admin puede configurar tableros.</p>
-              <Link className="mt-4 inline-block underline" href="/dashboard">
-                Volver al dashboard
-              </Link>
-            </main>
-          </div>
+          <AccessGuardFallback message="Solo Admin puede configurar tableros." />
         }
       >
         <div className="min-h-screen p-6">
@@ -162,12 +177,15 @@ export default function BoardSettingsPage() {
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">Configuración del tablero</h1>
               <div className="flex gap-3">
-                <Link className="underline" href={`/dashboard/boards/${boardId}`}>
-                  <Button variant="secondary">Ver tablero</Button>
-                </Link>
-                <Link className="underline" href="/dashboard">
-                  <Button variant="secondary">Dashboard</Button>
-                </Link>
+                <NavButtonLink
+                  href={`/dashboard/boards/${boardId}`}
+                  linkClassName="underline"
+                >
+                  Ver tablero
+                </NavButtonLink>
+                <NavButtonLink href="/dashboard" linkClassName="underline">
+                  Dashboard
+                </NavButtonLink>
               </div>
             </div>
             <section className="rounded-lg border border-foreground/15 p-6">

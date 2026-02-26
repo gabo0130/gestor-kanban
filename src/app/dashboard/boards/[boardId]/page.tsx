@@ -1,29 +1,29 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import { Button } from "@/components/atoms";
+import { Button, NavButtonLink } from "@/components/atoms";
 import { ProtectedRoute, RoleGuard } from "@/components/organisms";
 import { useAuth } from "@/contexts/auth-context";
 import { useKanban } from "@/modules/tasks/hooks/useKanban/useKanban";
 
 const KanbanBoard = dynamic(
-  () => import("@/components/organisms/KanbanBoard/KanbanBoard").then((mod) => mod.KanbanBoard),
-  { ssr: false }
+  () =>
+    import("@/components/organisms/KanbanBoard/KanbanBoard").then(
+      (mod) => mod.KanbanBoard,
+    ),
+  { ssr: false },
 );
 
 const getBoardId = (value: string | string[] | undefined) =>
-  Array.isArray(value) ? value[0] : value ?? "";
+  Array.isArray(value) ? value[0] : (value ?? "");
 
 export default function BoardPage() {
   const { boardId: rawBoardId } = useParams();
   const boardId = getBoardId(rawBoardId);
   const { user, logout, isLoading: authLoading, isAuthenticated } = useAuth();
-  const { statuses, tasks, loading, error, refresh, persistTaskStatus } = useKanban(
-    boardId,
-    !authLoading && isAuthenticated
-  );
+  const { statuses, tasks, loading, error, refresh, persistTaskStatus } =
+    useKanban(boardId, !authLoading && isAuthenticated);
 
   const handleTaskMove = async (params: {
     taskId: string;
@@ -33,7 +33,7 @@ export default function BoardPage() {
     const result = await persistTaskStatus(
       params.taskId,
       params.toStatus,
-      params.destinationIndex
+      params.destinationIndex,
     );
 
     if (result.error) {
@@ -52,20 +52,26 @@ export default function BoardPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link href="/dashboard">
-                <Button variant="secondary">← Volver</Button>
-              </Link>
+              <NavButtonLink href={`/dashboard`} linkClassName="underline">
+                Volver al dashboard
+              </NavButtonLink>
 
               <RoleGuard allowed={["Admin", "Manager"]}>
-                <Link href={`/dashboard/boards/${boardId}/tasks`}>
-                  <Button variant="secondary">Gestionar tareas</Button>
-                </Link>
+                <NavButtonLink
+                  href={`/dashboard/boards/${boardId}/tasks`}
+                  linkClassName="underline"
+                >
+                  Gestionar tareas
+                </NavButtonLink>
               </RoleGuard>
 
               <RoleGuard allowed={["Admin"]}>
-                <Link href={`/dashboard/boards/${boardId}/settings`}>
-                  <Button variant="secondary">Configurar tablero</Button>
-                </Link>
+                <NavButtonLink
+                  href={`/dashboard/boards/${boardId}/settings`}
+                  linkClassName="underline"
+                >
+                  Configurar tablero
+                </NavButtonLink>
               </RoleGuard>
 
               <Button variant="secondary" onClick={logout}>
@@ -78,11 +84,15 @@ export default function BoardPage() {
         <main className="mx-auto max-w-7xl space-y-4 p-6">
           <section className="rounded-lg border border-foreground/10 bg-background p-4">
             <h2 className="text-lg font-semibold">Kanban</h2>
-            <p className="mt-1 text-sm opacity-75">Arrastra y suelta tareas entre estados.</p>
+            <p className="mt-1 text-sm opacity-75">
+              Arrastra y suelta tareas entre estados.
+            </p>
           </section>
 
           <section className="rounded-lg border border-foreground/10 bg-background p-4">
-            {loading ? <p className="text-sm opacity-70">Cargando tablero...</p> : null}
+            {loading ? (
+              <p className="text-sm opacity-70">Cargando tablero...</p>
+            ) : null}
 
             {!loading && error ? (
               <div className="flex items-center justify-between gap-3 rounded-md border border-foreground/20 p-3">
@@ -94,7 +104,11 @@ export default function BoardPage() {
             ) : null}
 
             {!loading && !error ? (
-              <KanbanBoard statuses={statuses} tasks={tasks} onTaskMove={handleTaskMove} />
+              <KanbanBoard
+                statuses={statuses}
+                tasks={tasks}
+                onTaskMove={handleTaskMove}
+              />
             ) : null}
           </section>
         </main>

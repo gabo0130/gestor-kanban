@@ -1,22 +1,31 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getBoard } from "@/apis/boards.api";
-import { BoardTaskDTO } from "@/apis/interfaces/kanban.interface";
+import { BoardLabelDTO, BoardTaskDTO } from "@/apis/interfaces/kanban.interface";
 import { UserDTO } from "@/apis/interfaces/users.interface";
 import { createTask, deleteTask, updateTask } from "@/apis/tasks.api";
 import { getUsers } from "@/apis/users.api";
-import { Button, Input, Spinner } from "@/components/atoms";
+import { Button, Input, NavButtonLink } from "@/components/atoms";
+import {
+  AccessGuardFallback,
+  AssigneeSelect,
+  AsyncListState,
+  StatusSelect,
+  TaskActions,
+  TaskInfo,
+  TaskLabelsSelector,
+} from "@/components/molecules";
 import { ProtectedRoute, RoleGuard } from "@/components/organisms";
+import { useAuth } from "@/contexts/auth-context";
 
 type TaskFormValues = {
   title: string;
   description: string;
   status: string;
   assigneeId: string;
-  labelsText: string;
+  labels: string[];
 };
 
 type BoardStatusOption = {
@@ -25,21 +34,18 @@ type BoardStatusOption = {
   order: number;
 };
 
-const parseCsv = (value: string): string[] =>
-  value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
 const getBoardId = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value ?? "";
 
 export default function BoardTasksManagementPage() {
   const { boardId: rawBoardId } = useParams();
   const boardId = getBoardId(rawBoardId);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const canManageTasks = user?.role === "Admin" || user?.role === "Manager";
 
   const [boardTasks, setBoardTasks] = useState<BoardTaskDTO[]>([]);
   const [boardStatuses, setBoardStatuses] = useState<BoardStatusOption[]>([]);
+  const [boardLabels, setBoardLabels] = useState<BoardLabelDTO[]>([]);
   const [members, setMembers] = useState<UserDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +54,7 @@ export default function BoardTasksManagementPage() {
     description: "",
     status: "",
     assigneeId: "",
-    labelsText: "",
+    labels: [],
   });
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskValues, setEditingTaskValues] = useState<TaskFormValues>({
@@ -56,13 +62,14 @@ export default function BoardTasksManagementPage() {
     description: "",
     status: "",
     assigneeId: "",
-    labelsText: "",
+    labels: [],
   });
 
   const loadBoardDetails = useCallback(async () => {
-    if (!boardId) {
+    if (!boardId || authLoading || !isAuthenticated || !canManageTasks) {
       setBoardTasks([]);
       setBoardStatuses([]);
+      setBoardLabels([]);
       setLoading(false);
       return;
     }
@@ -71,6 +78,7 @@ export default function BoardTasksManagementPage() {
       setLoading(true);
       const response = await getBoard(boardId);
       setBoardTasks(response.tasks);
+      setBoardLabels(response.board?.labels ?? []);
 
       const nextStatuses: BoardStatusOption[] = response.statuses
         .map((status, index) => ({
@@ -91,19 +99,25 @@ export default function BoardTasksManagementPage() {
     } catch {
       setBoardTasks([]);
       setBoardStatuses([]);
+      setBoardLabels([]);
     } finally {
       setLoading(false);
     }
-  }, [boardId]);
+  }, [authLoading, boardId, canManageTasks, isAuthenticated]);
 
   const loadMembers = useCallback(async () => {
+    if (authLoading || !isAuthenticated || !canManageTasks) {
+      setMembers([]);
+      return;
+    }
+
     try {
       const response = await getUsers();
       setMembers(response.users.filter((item) => item.role === "Member"));
     } catch {
       setMembers([]);
     }
-  }, []);
+  }, [authLoading, canManageTasks, isAuthenticated]);
 
   useEffect(() => {
     void loadBoardDetails();
@@ -113,6 +127,10 @@ export default function BoardTasksManagementPage() {
   const handleCreateTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!canManageTasks) {
+      return;
+    }
+
     try {
       await createTask({
         boardId,
@@ -120,10 +138,10 @@ export default function BoardTasksManagementPage() {
         description: taskValues.description || undefined,
         status: taskValues.status,
         assigneeId: taskValues.assigneeId || undefined,
-        labels: parseCsv(taskValues.labelsText),
+        labels: taskValues.labels,
       });
 
-      setTaskValues((prev) => ({ ...prev, title: "", description: "", labelsText: "" }));
+      setTaskValues((prev) => ({ ...prev, title: "", description: "", labels: [] }));
       await loadBoardDetails();
     } catch {}
   };
@@ -134,19 +152,23 @@ export default function BoardTasksManagementPage() {
       title: task.title,
       description: task.description ?? "",
       status: task.status,
-      assigneeId: task.assigneeId ?? "",
-      labelsText: (task.labels ?? []).join(", "),
+      assigneeId: task.assigneeId ? String(task.assigneeId) : "",
+      labels: task.labels ?? [],
     });
   };
 
   const handleSaveTask = async (taskId: string) => {
+    if (!canManageTasks) {
+      return;
+    }
+
     try {
       await updateTask(taskId, {
         title: editingTaskValues.title,
         description: editingTaskValues.description || undefined,
         status: editingTaskValues.status,
         assigneeId: editingTaskValues.assigneeId || undefined,
-        labels: parseCsv(editingTaskValues.labelsText),
+        labels: editingTaskValues.labels,
       });
 
       setEditingTaskId(null);
@@ -155,10 +177,45 @@ export default function BoardTasksManagementPage() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    if (!canManageTasks) {
+      return;
+    }
+
     try {
       await deleteTask(taskId);
       await loadBoardDetails();
     } catch {}
+  };
+
+  const toggleCreateLabel = (labelName: string) => {
+    setTaskValues((prev) => ({
+      ...prev,
+      labels: prev.labels.includes(labelName)
+        ? prev.labels.filter((label) => label !== labelName)
+        : [...prev.labels, labelName],
+    }));
+  };
+
+  const toggleEditLabel = (labelName: string) => {
+    setEditingTaskValues((prev) => ({
+      ...prev,
+      labels: prev.labels.includes(labelName)
+        ? prev.labels.filter((label) => label !== labelName)
+        : [...prev.labels, labelName],
+    }));
+  };
+
+  const resolveAssigneeName = (task: BoardTaskDTO) => {
+    if (task.assigneeName) {
+      return task.assigneeName;
+    }
+
+    if (!task.assigneeId) {
+      return "Sin asignar";
+    }
+
+    const assignee = members.find((member) => String(member.id) === String(task.assigneeId));
+    return assignee?.name ?? `Usuario ${task.assigneeId}`;
   };
 
   return (
@@ -166,15 +223,7 @@ export default function BoardTasksManagementPage() {
       <RoleGuard
         allowed={["Admin", "Manager"]}
         fallback={
-          <div className="flex min-h-screen items-center justify-center p-6">
-            <main className="w-full max-w-lg rounded-xl border border-foreground/15 p-6 text-center">
-              <h1 className="mb-2 text-xl font-semibold">Permisos limitados</h1>
-              <p className="text-sm opacity-80">Solo Admin o Manager pueden gestionar tareas.</p>
-              <Link className="mt-4 inline-block underline" href="/dashboard">
-                Volver al dashboard
-              </Link>
-            </main>
-          </div>
+          <AccessGuardFallback message="Solo Admin o Manager pueden gestionar tareas." />
         }
       >
         <div className="min-h-screen p-6">
@@ -182,12 +231,12 @@ export default function BoardTasksManagementPage() {
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">Gestión de tareas</h1>
               <div className="flex gap-3">
-                <Link className="underline" href={`/dashboard/boards/${boardId}`}>
-                 <Button variant="secondary"> Ver tablero</Button>
-                </Link>
-                <Link className="underline" href="/dashboard">
-                  <Button variant="secondary">Dashboard</Button>
-                </Link>
+                <NavButtonLink href={`/dashboard/boards/${boardId}`} linkClassName="underline">
+                  Ver tablero
+                </NavButtonLink>
+                <NavButtonLink href="/dashboard" linkClassName="underline">
+                  Dashboard
+                </NavButtonLink>
               </div>
             </div>
             <section className="rounded-lg border border-foreground/15 p-6">
@@ -213,58 +262,32 @@ export default function BoardTasksManagementPage() {
                   }
                 />
 
-                <div className="flex w-full flex-col gap-1">
-                  <label htmlFor="task-status" className="text-sm font-medium">
-                    Estado
-                  </label>
-                  <select
-                    id="task-status"
-                    className="h-10 rounded-md border border-foreground/25 bg-background px-3 text-sm outline-none focus:border-foreground"
-                    value={taskValues.status}
-                    onChange={(event) =>
-                      setTaskValues((prev) => ({
-                        ...prev,
-                        status: event.target.value,
-                      }))
-                    }
-                    required
-                  >
-                    {boardStatuses.map((status) => (
-                      <option key={status.id} value={status.label}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex w-full flex-col gap-1">
-                  <label htmlFor="task-assignee" className="text-sm font-medium">
-                    Asignar a miembro
-                  </label>
-                  <select
-                    id="task-assignee"
-                    className="h-10 rounded-md border border-foreground/25 bg-background px-3 text-sm outline-none focus:border-foreground"
-                    value={taskValues.assigneeId}
-                    onChange={(event) =>
-                      setTaskValues((prev) => ({ ...prev, assigneeId: event.target.value }))
-                    }
-                  >
-                    <option value="">Sin asignar</option>
-                    {members.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <Input
-                  name="task-labels"
-                  label="Etiquetas (coma separada)"
-                  value={taskValues.labelsText}
-                  onChange={(event) =>
-                    setTaskValues((prev) => ({ ...prev, labelsText: event.target.value }))
+                <StatusSelect
+                  id="task-status"
+                  value={taskValues.status}
+                  options={boardStatuses}
+                  required
+                  onChange={(value) =>
+                    setTaskValues((prev) => ({
+                      ...prev,
+                      status: value,
+                    }))
                   }
+                />
+
+                <AssigneeSelect
+                  id="task-assignee"
+                  value={taskValues.assigneeId}
+                  members={members}
+                  onChange={(value) =>
+                    setTaskValues((prev) => ({ ...prev, assigneeId: value }))
+                  }
+                />
+
+                <TaskLabelsSelector
+                  labels={boardLabels}
+                  selectedLabels={taskValues.labels}
+                  onToggle={toggleCreateLabel}
                 />
 
                 <div className="md:col-span-2">
@@ -278,14 +301,14 @@ export default function BoardTasksManagementPage() {
             <section className="rounded-lg border border-foreground/15 p-6">
               <h2 className="mb-3 text-lg font-medium">Listado de tareas</h2>
 
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <Spinner size="sm" />
-                  <span className="text-sm opacity-80">Cargando tareas...</span>
-                </div>
-              ) : boardTasks.length === 0 ? (
-                <p className="text-sm opacity-75">No hay tareas para este tablero.</p>
-              ) : (
+              <AsyncListState
+                loading={loading}
+                isEmpty={boardTasks.length === 0}
+                loadingText="Cargando tareas..."
+                emptyText="No hay tareas para este tablero."
+              />
+
+              {!loading && boardTasks.length > 0 ? (
                 <div className="space-y-3">
                   {boardTasks.map((task) => (
                     <div key={task.id} className="rounded-md border border-foreground/15 p-3">
@@ -305,48 +328,30 @@ export default function BoardTasksManagementPage() {
                               setEditingTaskValues((prev) => ({ ...prev, description: event.target.value }))
                             }
                           />
-                          <div className="flex w-full flex-col gap-1">
-                            <label className="text-sm font-medium">Estado</label>
-                            <select
-                              className="h-10 rounded-md border border-foreground/25 bg-background px-3 text-sm outline-none focus:border-foreground"
-                              value={editingTaskValues.status}
-                              onChange={(event) =>
-                                setEditingTaskValues((prev) => ({
-                                  ...prev,
-                                  status: event.target.value,
-                                }))
-                              }
-                            >
-                              {boardStatuses.map((status) => (
-                                <option key={status.id} value={status.label}>
-                                  {status.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="flex w-full flex-col gap-1">
-                            <label className="text-sm font-medium">Asignado a</label>
-                            <select
-                              className="h-10 rounded-md border border-foreground/25 bg-background px-3 text-sm outline-none focus:border-foreground"
-                              value={editingTaskValues.assigneeId}
-                              onChange={(event) =>
-                                setEditingTaskValues((prev) => ({ ...prev, assigneeId: event.target.value }))
-                              }
-                            >
-                              <option value="">Sin asignar</option>
-                              {members.map((member) => (
-                                <option key={member.id} value={member.id}>
-                                  {member.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <Input
-                            name={`edit-labels-${task.id}`}
-                            value={editingTaskValues.labelsText}
-                            onChange={(event) =>
-                              setEditingTaskValues((prev) => ({ ...prev, labelsText: event.target.value }))
+                          <StatusSelect
+                            id={`edit-task-status-${task.id}`}
+                            value={editingTaskValues.status}
+                            options={boardStatuses}
+                            onChange={(value) =>
+                              setEditingTaskValues((prev) => ({
+                                ...prev,
+                                status: value,
+                              }))
                             }
+                          />
+                          <AssigneeSelect
+                            id={`edit-task-assignee-${task.id}`}
+                            label="Asignado a"
+                            value={editingTaskValues.assigneeId}
+                            members={members}
+                            onChange={(value) =>
+                              setEditingTaskValues((prev) => ({ ...prev, assigneeId: value }))
+                            }
+                          />
+                          <TaskLabelsSelector
+                            labels={boardLabels}
+                            selectedLabels={editingTaskValues.labels}
+                            onToggle={toggleEditLabel}
                           />
                           <div className="flex gap-2 md:col-span-2">
                             <Button onClick={() => handleSaveTask(task.id)}>Guardar</Button>
@@ -357,25 +362,23 @@ export default function BoardTasksManagementPage() {
                         </div>
                       ) : (
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-medium">{task.title}</p>
-                            <p className="text-sm opacity-80">{task.description ?? "Sin descripción"}</p>
-                            <p className="text-xs opacity-70">Estado: {task.status}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="secondary" onClick={() => startTaskEdit(task)}>
-                              Editar
-                            </Button>
-                            <Button variant="secondary" onClick={() => handleDeleteTask(task.id)}>
-                              Eliminar
-                            </Button>
-                          </div>
+                          <TaskInfo
+                            title={task.title}
+                            description={task.description}
+                            status={task.status}
+                            assignee={resolveAssigneeName(task)}
+                            labels={task.labels}
+                          />
+                          <TaskActions
+                            onEdit={() => startTaskEdit(task)}
+                            onDelete={() => handleDeleteTask(task.id)}
+                          />
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
             </section>
           </main>
         </div>
