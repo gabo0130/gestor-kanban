@@ -1,36 +1,159 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gestor Kanban Multiusuario
 
-## Getting Started
+Sistema de gestión de tareas estilo Kanban desarrollado con Next.js 16, React 19 y TypeScript.
 
-First, run the development server:
+## 🚀 Stack Tecnológico
+
+### Frontend
+- **Next.js 16** - Framework React con App Router
+- **React 19** - UI library con React Compiler
+- **TypeScript** - Tipado estático
+- **Tailwind CSS v4** - Estilos utility-first
+- **Axios** - Cliente HTTP
+- **React Query** - Gestión de estado servidor (pendiente)
+
+### Arquitectura
+- **Atomic Design** - Componentes escalables (atoms, molecules, organisms, templates)
+- **Feature-based modules** - Organización por funcionalidad (auth, projects, tasks)
+- **Context API** - Estado global de UI y autenticación
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── apis/              # Cliente HTTP y endpoints
+├── app/               # Rutas de Next.js (App Router)
+├── components/        # Componentes UI (Atomic Design)
+│   ├── atoms/        # Botones, inputs, spinners
+│   ├── molecules/    # Forms, modales
+│   └── organisms/    # Guards de rutas, layouts
+├── contexts/         # Contextos de React (auth, UI)
+├── hooks/            # Custom hooks globales
+├── modules/          # Módulos por funcionalidad
+│   ├── auth/         # Autenticación
+│   ├── projects/     # Gestión de proyectos
+│   └── tasks/        # Gestión de tareas
+└── middleware.ts     # Protección de rutas (Next.js)
+```
+
+---
+
+## 🛠️ Instalación y Configuración
+
+### 1. Clonar e instalar dependencias
+
+```bash
+git clone <repo-url>
+cd gestor-kanban
+npm install
+```
+
+### 2. Configurar variables de entorno
+
+Crear archivo `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+```
+
+### 3. Iniciar servidor de desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔐 Sistema de Autenticación
 
-## Learn More
+### Características Implementadas
+- ✅ Login con JWT
+- ✅ Persistencia de sesión (localStorage + cookies)
+- ✅ Bearer token automático en peticiones
+- ✅ Rutas protegidas (middleware + guard cliente)
+- ✅ Logout con limpieza completa
+- ✅ Interceptor 401/403 con redirección
 
-To learn more about Next.js, take a look at the following resources:
+### Rutas
+- `/` - Login (público)
+- `/dashboard` - Dashboard (protegido)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Documentación de Auth
+Ver archivo **[AUTH_SYSTEM.md](AUTH_SYSTEM.md)** para detalles completos del sistema de autenticación.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📦 Scripts Disponibles
 
-## Deploy on Vercel
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de producción |
+| `npm start` | Servidor de producción |
+| `npm run lint` | Linter ESLint |
+| `npm test` | Ejecutar tests (Jest) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🎨 Componentes Reutilizables
+
+### Átomos
+- `Button` - Botón con variantes y estado de carga
+- `Input` - Input con label y validación
+- `Spinner` - Indicador de carga
+
+### Moléculas
+- `LoginForm` - Formulario de autenticación
+- `InformativeModal` - Modal informativo
+
+### Organismos
+- `ProtectedRoute` - Guard de rutas protegidas
+
+### Uso
+```tsx
+import { Button, Input } from "@/components/atoms";
+import { LoginForm } from "@/components/molecules";
+import { ProtectedRoute } from "@/components/organisms";
+```
+
+---
+
+## 🌐 Estado Global
+
+### Contexto de UI (`useUIState`)
+```tsx
+const { loading, setLoading, showErrorModal, closeModal } = useUIState();
+
+// Mostrar loading global
+setLoading(true);
+
+// Mostrar modal de error
+showErrorModal("Ocurrió un error", "Error");
+```
+
+### Contexto de Auth (`useAuth`)
+```tsx
+const { user, token, isAuthenticated, login, logout } = useAuth();
+
+// Acceder a usuario actual
+console.log(user?.name, user?.email);
+
+// Cerrar sesión
+logout();
+```
+## 📄 Licencia
+
+Este proyecto está bajo la licencia MIT.
+
+---
+
+## 📚 Recursos Adicionales
+
+- [Documentación de Next.js](https://nextjs.org/docs)
+- [Documentación de React](https://react.dev)
+- [Tailwind CSS](https://tailwindcss.com/docs)
+- [Arquitectura del Sistema de Auth](AUTH_SYSTEM.md)
+- [Guía de Implementación Backend](BACKEND_GUIDE.md)

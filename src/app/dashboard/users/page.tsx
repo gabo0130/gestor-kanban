@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { getUsers, updateUser } from "@/apis/users.api";
-import { Button, Input, Spinner } from "@/components/atoms";
+import { Button, Input, NavButtonLink, Spinner } from "@/components/atoms";
+import { AccessGuardFallback } from "@/components/molecules";
 import { ProtectedRoute, RoleGuard } from "@/components/organisms";
 import { useCreateUser } from "@/modules/auth/hooks/useCreateUser/useCreateUser";
 import { useAccessCatalog } from "@/modules/auth/hooks/useAccessCatalog/useAccessCatalog";
@@ -131,24 +131,20 @@ export default function UsersManagementPage() {
       <RoleGuard
         allowed={["Admin"]}
         fallback={
-          <div className="flex min-h-screen items-center justify-center p-6">
-            <main className="w-full max-w-md rounded-xl border border-foreground/15 p-6 text-center">
-              <h1 className="mb-2 text-xl font-semibold">Acceso restringido</h1>
-              <p className="text-sm opacity-80">Solo administradores pueden gestionar usuarios.</p>
-              <Link className="mt-4 inline-block underline" href="/dashboard">
-                Volver al tablero
-              </Link>
-            </main>
-          </div>
+          <AccessGuardFallback
+            title="Acceso restringido"
+            message="Solo administradores pueden gestionar usuarios."
+            backLabel="Volver al tablero"
+          />
         }
       >
         <div className="min-h-screen p-6">
           <main className="mx-auto w-full max-w-6xl space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold">Gestión de usuarios</h1>
-              <Link className="underline" href="/dashboard">
+              <NavButtonLink href="/dashboard" linkClassName="underline">
                 Volver al dashboard
-              </Link>
+              </NavButtonLink>
             </div>
 
             <section className="rounded-lg border border-foreground/15 p-6">
