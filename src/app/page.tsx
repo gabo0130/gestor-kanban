@@ -8,6 +8,9 @@ export default function Home() {
         <p className="mb-6 text-sm opacity-80">Accede para gestionar tu tablero Kanban.</p>
 
         <LoginForm />
+        <p className="mt-4 text-center text-sm opacity-80">
+          Si necesitas una cuenta, solicita acceso a un administrador.
+        </p>
       </main>
     </div>
   );

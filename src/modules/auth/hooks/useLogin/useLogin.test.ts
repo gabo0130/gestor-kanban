@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { AxiosError } from "axios";
 import { useLogin } from "./useLogin";
 import * as authApi from "@/apis/auth.api";
 
@@ -41,5 +42,48 @@ describe("useLogin", () => {
     expect(response).toEqual({ data: null, error: "No se pudo iniciar sesión" });
     expect(result.current.error).toBe("No se pudo iniciar sesión");
     expect(result.current.loading).toBeFalsy();
+  });
+
+  it("should map Axios backend message", async () => {
+    const axiosErr = new AxiosError("Bad request");
+    (axiosErr as AxiosError & { response?: unknown }).response = {
+      data: { message: "Usuario bloqueado" },
+    } as unknown;
+
+    (authApi.login as jest.Mock).mockRejectedValue(axiosErr);
+
+    const { result } = renderHook(() => useLogin());
+    let response;
+
+    await act(async () => {
+      response = await result.current.login({
+        email: "test@test.com",
+        password: "123456",
+      });
+    });
+
+    expect(response).toEqual({ data: null, error: "Usuario bloqueado" });
+    expect(result.current.error).toBe("Usuario bloqueado");
+  });
+
+  it("should fallback when Axios error has no backend message", async () => {
+    const axiosErr = new AxiosError("Bad request");
+    (axiosErr as AxiosError & { response?: unknown }).response = {
+      data: {},
+    } as unknown;
+
+    (authApi.login as jest.Mock).mockRejectedValue(axiosErr);
+
+    const { result } = renderHook(() => useLogin());
+    let response;
+
+    await act(async () => {
+      response = await result.current.login({
+        email: "test@test.com",
+        password: "123456",
+      });
+    });
+
+    expect(response).toEqual({ data: null, error: "No se pudo iniciar sesión" });
   });
 });

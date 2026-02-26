@@ -189,15 +189,32 @@ function Header() {
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:4000/api
 ```
-
 ---
 
-## Próximos Pasos Sugeridos
+## Roles y Permisos (Guía de responsabilidades)
 
-1. **Refresh token**: Implementar renovación automática antes de expirar
-2. **Roles y permisos**: Extender `AuthUser` con rol y crear guards por rol
-3. **Validación de token**: Verificar validez del token en el servidor periódicamente
-4. **SSR con sesión**: Usar cookies httpOnly y validar en `getServerSideProps`
+### Roles disponibles
+
+- **Admin**
+  - Responsabilidades: administración total del workspace.
+  - Permisos : `board:view`, `board:edit`, `tasks:move`, `users:manage`.
+  - Acceso exclusivo: creación de cuentas y gestión de usuarios.
+
+- **manager**
+  - Responsabilidades: planificación y seguimiento del trabajo.
+  - Permisos : `board:view`, `board:edit`, `tasks:move`.
+  - No puede gestionar usuarios.
+
+- **member**
+  - Responsabilidades: ejecución de tareas.
+  - Permisos : `board:view`, `tasks:move`.
+  - No puede editar el tablero ni gestionar usuarios.
+
+### Modelo de permisos
+
+- Los permisos se derivan del rol si el usuario no trae permisos explícitos.
+- El frontend usa `RoleGuard` y `PermissionGuard` para habilitar o bloquear UI.
+- El backend debe validar siempre roles/permisos en cada endpoint.
 
 ---
 
