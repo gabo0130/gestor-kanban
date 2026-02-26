@@ -56,6 +56,9 @@ export const useKanban = (boardId: string, enabled = true): UseKanbanResult => {
           title: task.title,
           description: task.description,
           status: task.status,
+          assigneeId: task.assigneeId ? String(task.assigneeId) : undefined,
+          assigneeName: task.assigneeName,
+          labels: task.labels,
         }))
       );
     } catch (err) {

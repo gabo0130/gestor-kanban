@@ -1,5 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
-import { UIStateProvider, useUIState } from "./ui-state";
+import {
+  setUIBridge,
+  uiShowModal,
+  uiStartLoading,
+  uiStopLoading,
+  UIStateProvider,
+  useUIState,
+} from "./ui-state";
 
 describe("useUIState", () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
