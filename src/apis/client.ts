@@ -80,7 +80,7 @@ apiClient.interceptors.response.use(
       });
     }
 
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    if (error.response?.status === 401) {
       // Limpiar sesión en caso de token inválido/expirado
       localStorage.removeItem("auth_token");
       localStorage.removeItem("auth_user");
